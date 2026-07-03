@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import uuid
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal, ROUND_DOWN
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -30,6 +34,126 @@ STATIC = ROOT / "static"
 
 app = FastAPI(title="Robinhood Trading Bridge")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
+
+_AUTOPILOT_TASK: asyncio.Task[None] | None = None
+_AUTOPILOT_STATE: dict[str, Any] = {
+    "enabled": False,
+    "running": False,
+    "cycle_count": 0,
+    "last_started_at": None,
+    "last_finished_at": None,
+    "next_run_at": None,
+    "last_result": None,
+}
+
+
+def _utc_now() -> str:
+    return datetime.now(UTC).isoformat()
+
+
+def _autopilot_config() -> dict[str, Any]:
+    settings = get_settings()
+    return {
+        "enabled": settings.autopilot_enabled,
+        "interval_seconds": settings.autopilot_interval_seconds,
+        "bankroll_usd": str(settings.autopilot_bankroll_usd),
+        "days_remaining": settings.autopilot_days_remaining,
+        "max_products": settings.autopilot_max_products,
+        "auto_execute_enabled": settings.auto_execute_enabled,
+        "auto_execute_min_score": settings.auto_execute_min_score,
+        "live_trading_enabled": settings.live_trading_enabled,
+        "mode": settings.broker_mode,
+    }
+
+
+def _summarize_autopilot_result(result: ApiResult, action: str) -> dict[str, Any]:
+    data = result.data if isinstance(result.data, dict) else {}
+    scan = data.get("scan") if isinstance(data.get("scan"), dict) else data
+    best = scan.get("best", {}) if isinstance(scan, dict) else {}
+    proposal = data.get("proposal") if isinstance(data.get("proposal"), dict) else best.get("proposal")
+    return {
+        "ok": result.ok,
+        "action": action,
+        "mode": result.mode,
+        "product_id": best.get("product_id") or (proposal or {}).get("product_id"),
+        "side": best.get("decision") or (proposal or {}).get("side"),
+        "score": best.get("score"),
+        "message": result.message,
+    }
+
+
+async def _run_autopilot_cycle() -> None:
+    settings = get_settings()
+    audit = AuditLog(settings.audit_db_path)
+    request = StrategyScanRequest(
+        bankroll_usd=settings.autopilot_bankroll_usd,
+        days_remaining=settings.autopilot_days_remaining,
+        max_products=settings.autopilot_max_products,
+    )
+    _AUTOPILOT_STATE["running"] = True
+    _AUTOPILOT_STATE["cycle_count"] = int(_AUTOPILOT_STATE["cycle_count"]) + 1
+    _AUTOPILOT_STATE["last_started_at"] = _utc_now()
+    _AUTOPILOT_STATE["next_run_at"] = None
+    try:
+        if settings.auto_execute_enabled:
+            result = await asyncio.to_thread(strategy_auto_execute, request)
+            summary = _summarize_autopilot_result(result, "auto_execute")
+        else:
+            result = await asyncio.to_thread(strategy_scan, request)
+            summary = _summarize_autopilot_result(result, "scan_only")
+        _AUTOPILOT_STATE["last_result"] = summary
+        audit.record("autopilot_cycle", summary)
+    except HTTPException as exc:
+        blocked = {
+            "ok": False,
+            "action": "blocked",
+            "status_code": exc.status_code,
+            "detail": str(exc.detail),
+        }
+        _AUTOPILOT_STATE["last_result"] = blocked
+        audit.record("autopilot_blocked", blocked)
+    except Exception as exc:
+        error = {"ok": False, "action": "error", "detail": str(exc)}
+        _AUTOPILOT_STATE["last_result"] = error
+        audit.record("autopilot_error", error)
+    finally:
+        refreshed = get_settings()
+        _AUTOPILOT_STATE["running"] = False
+        _AUTOPILOT_STATE["last_finished_at"] = _utc_now()
+        _AUTOPILOT_STATE["next_run_at"] = (
+            datetime.now(UTC) + timedelta(seconds=refreshed.autopilot_interval_seconds)
+        ).isoformat()
+
+
+async def _autopilot_loop() -> None:
+    while True:
+        settings = get_settings()
+        _AUTOPILOT_STATE["enabled"] = settings.autopilot_enabled
+        if not settings.autopilot_enabled:
+            _AUTOPILOT_STATE["next_run_at"] = None
+            return
+        await _run_autopilot_cycle()
+        await asyncio.sleep(settings.autopilot_interval_seconds)
+
+
+@app.on_event("startup")
+async def start_autopilot() -> None:
+    global _AUTOPILOT_TASK
+    settings = get_settings()
+    _AUTOPILOT_STATE["enabled"] = settings.autopilot_enabled
+    if settings.autopilot_enabled and _AUTOPILOT_TASK is None:
+        _AUTOPILOT_TASK = asyncio.create_task(_autopilot_loop())
+
+
+@app.on_event("shutdown")
+async def stop_autopilot() -> None:
+    global _AUTOPILOT_TASK
+    if _AUTOPILOT_TASK is None:
+        return
+    _AUTOPILOT_TASK.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await _AUTOPILOT_TASK
+    _AUTOPILOT_TASK = None
 
 
 def _services() -> tuple[RobinhoodBridge, AuditLog, Policy]:
@@ -133,6 +257,33 @@ def status() -> ApiResult:
             "scan_stock_symbols": settings.scan_stock_symbols,
             "auto_execute_enabled": settings.auto_execute_enabled,
             "auto_execute_min_score": settings.auto_execute_min_score,
+            "autopilot": {
+                **_autopilot_config(),
+                "running": _AUTOPILOT_STATE["running"],
+                "cycle_count": _AUTOPILOT_STATE["cycle_count"],
+                "last_started_at": _AUTOPILOT_STATE["last_started_at"],
+                "last_finished_at": _AUTOPILOT_STATE["last_finished_at"],
+                "next_run_at": _AUTOPILOT_STATE["next_run_at"],
+                "last_result": _AUTOPILOT_STATE["last_result"],
+            },
+        },
+    )
+
+
+@app.get("/api/autopilot", response_model=ApiResult)
+def autopilot_status() -> ApiResult:
+    settings = get_settings()
+    return ApiResult(
+        ok=True,
+        mode=settings.broker_mode,
+        data={
+            **_autopilot_config(),
+            "running": _AUTOPILOT_STATE["running"],
+            "cycle_count": _AUTOPILOT_STATE["cycle_count"],
+            "last_started_at": _AUTOPILOT_STATE["last_started_at"],
+            "last_finished_at": _AUTOPILOT_STATE["last_finished_at"],
+            "next_run_at": _AUTOPILOT_STATE["next_run_at"],
+            "last_result": _AUTOPILOT_STATE["last_result"],
         },
     )
 

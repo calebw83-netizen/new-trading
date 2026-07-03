@@ -13,6 +13,16 @@ services:
         value: false
       - key: AUTO_EXECUTE_ENABLED
         value: false
+      - key: AUTOPILOT_ENABLED
+        value: false
+      - key: AUTOPILOT_INTERVAL_SECONDS
+        value: 300
+      - key: AUTOPILOT_BANKROLL_USD
+        value: 10
+      - key: AUTOPILOT_DAYS_REMAINING
+        value: 90
+      - key: AUTOPILOT_MAX_PRODUCTS
+        value: 12
       - key: REQUIRE_CONFIRMATION
         value: true
       - key: AUDIT_DB_PATH

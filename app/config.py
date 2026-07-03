@@ -63,6 +63,11 @@ class Settings:
     scan_asset_classes: set[str]
     auto_execute_enabled: bool
     auto_execute_min_score: int
+    autopilot_enabled: bool
+    autopilot_interval_seconds: int
+    autopilot_bankroll_usd: Decimal
+    autopilot_days_remaining: int
+    autopilot_max_products: int
 
     @property
     def has_credentials(self) -> bool:
@@ -98,4 +103,11 @@ def get_settings() -> Settings:
         },
         auto_execute_enabled=_bool("AUTO_EXECUTE_ENABLED", False),
         auto_execute_min_score=max(80, int(os.getenv("AUTO_EXECUTE_MIN_SCORE", "80"))),
+        autopilot_enabled=_bool("AUTOPILOT_ENABLED", False),
+        autopilot_interval_seconds=max(300, int(os.getenv("AUTOPILOT_INTERVAL_SECONDS", "300"))),
+        autopilot_bankroll_usd=_decimal("AUTOPILOT_BANKROLL_USD", "10"),
+        autopilot_days_remaining=min(
+            365, max(1, int(os.getenv("AUTOPILOT_DAYS_REMAINING", "90")))
+        ),
+        autopilot_max_products=min(50, max(1, int(os.getenv("AUTOPILOT_MAX_PRODUCTS", "12")))),
     )

@@ -126,6 +126,7 @@ async function loadStatus() {
       `Assets: ${(data.scan_asset_classes || []).join(", ")}`,
       `News feeds: ${(data.news_feeds || []).length}`,
       `Auto execute: ${data.auto_execute_enabled ? `${data.auto_execute_min_score}+` : "locked"}`,
+      `Autopilot: ${data.autopilot?.enabled ? `every ${Math.round(data.autopilot.interval_seconds / 60)}m` : "off"}`,
       data.live_trading_enabled ? "Live execution enabled" : "Live execution locked",
     ].forEach((text) => {
       const pill = document.createElement("span");

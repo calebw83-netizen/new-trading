@@ -77,6 +77,34 @@ Live order execution in this build is for Robinhood Crypto only. Stock scans and
 
 Use **Auto Execute 80+** only after explicitly opting in with `AUTO_EXECUTE_ENABLED=true`. Auto execution scans first, refuses anything below `AUTO_EXECUTE_MIN_SCORE` (minimum 80), runs the normal proposal guardrails, previews the order, and then executes. Live auto execution also requires `ROBINHOOD_MODE=live` and `ROBINHOOD_ENABLE_LIVE_TRADING=true`.
 
+## Always-On Autopilot
+
+Hosted deployments can run a background autopilot loop. It wakes up on `AUTOPILOT_INTERVAL_SECONDS`, scans Robinhood charts plus news, and records the result in the audit trail.
+
+Default behavior is scan-only:
+
+```text
+AUTOPILOT_ENABLED=true
+AUTO_EXECUTE_ENABLED=false
+```
+
+To allow automatic execution, all execution locks still have to be opened:
+
+```text
+AUTOPILOT_ENABLED=true
+AUTO_EXECUTE_ENABLED=true
+AUTO_EXECUTE_MIN_SCORE=80
+```
+
+For live crypto orders, these are also required:
+
+```text
+ROBINHOOD_MODE=live
+ROBINHOOD_ENABLE_LIVE_TRADING=true
+```
+
+Keep `MAX_ORDER_QUOTE_USD`, `DAILY_QUOTE_LIMIT_USD`, and `ALLOWED_PRODUCTS` tight. Stock execution remains paper-only in this build; live stock orders are blocked.
+
 ## Using It On LTE
 
 LTE needs a public HTTPS backend. The local addresses `127.0.0.1` and `192.168...` only work on this computer or your home Wi-Fi.
