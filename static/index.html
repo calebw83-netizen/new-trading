@@ -10,7 +10,7 @@
     <title>Robinhood Trading Bridge</title>
     <link rel="manifest" href="/static/manifest.webmanifest?v=1" />
     <link rel="apple-touch-icon" href="/static/icon.svg?v=1" />
-    <link rel="stylesheet" href="/static/styles.css?v=11" />
+    <link rel="stylesheet" href="/static/styles.css?v=12" />
   </head>
   <body>
     <main class="shell">
@@ -32,56 +32,8 @@
               <span class="challenge-target">$10 to $1000 / 90 days</span>
             </div>
           </div>
-          <form id="strategyForm" class="strategy-form">
-            <label>
-              Product
-              <input name="product_id" value="BTC-USD" autocomplete="off" />
-            </label>
-            <label>
-              Bankroll
-              <input name="bankroll_usd" value="10" inputmode="decimal" />
-            </label>
-            <label>
-              Days left
-              <input name="days_remaining" value="90" inputmode="numeric" />
-            </label>
-            <label>
-              Sentiment
-              <input name="sentiment_score" type="range" min="-5" max="5" value="0" />
-            </label>
-            <label>
-              News bias
-              <select name="news_bias">
-                <option value="neutral">Neutral</option>
-                <option value="bullish">Bullish</option>
-                <option value="bearish">Bearish</option>
-              </select>
-            </label>
-            <label>
-              Event risk
-              <select name="event_risk">
-                <option value="elevated">Elevated</option>
-                <option value="low">Low</option>
-                <option value="extreme">Extreme</option>
-              </select>
-            </label>
-            <label class="toggle-label">
-              <input name="auto_fetch_news" type="checkbox" value="true" checked />
-              Auto news
-            </label>
-            <label>
-              Base held
-              <input name="base_inventory" value="" inputmode="decimal" placeholder="Optional" />
-            </label>
-            <label class="wide">
-              News cycle notes
-              <textarea name="headlines" rows="3" placeholder="Paste headlines, themes, catalysts, risk events"></textarea>
-            </label>
-            <button type="submit">Analyze</button>
-          </form>
           <div class="strategy-result">
-            <div id="strategyOutput" class="decision empty">No analysis yet.</div>
-            <button id="loadStrategyProposal" type="button" disabled>Load Proposal</button>
+            <div id="strategyOutput" class="decision empty">Autopilot waiting.</div>
           </div>
         </article>
 
@@ -95,50 +47,16 @@
 
         <article class="panel proposal-panel">
           <div class="panel-head">
-            <h2>Trade Check</h2>
+            <h2>Trade Decision</h2>
           </div>
-          <form id="proposalForm" class="form">
-            <label>
-              Product
-              <input name="product_id" value="BTC-USD" autocomplete="off" />
-            </label>
-            <label>
-              Side
-              <select name="side">
-                <option value="BUY">Buy</option>
-                <option value="SELL">Sell</option>
-              </select>
-            </label>
-            <label>
-              Quote notional in USD
-              <input name="quote_size" value="10" inputmode="decimal" />
-            </label>
-            <label id="baseSizeField">
-              Base asset size
-              <input name="base_size" value="" inputmode="decimal" placeholder="Required for sells" />
-            </label>
-            <label class="wide">
-              Rationale
-              <textarea name="rationale" rows="4" placeholder="Why this trade should be considered"></textarea>
-            </label>
-            <button type="submit">Check Trade</button>
-          </form>
           <div id="proposalOutput" class="decision empty">No proposal checked yet.</div>
         </article>
 
         <article class="panel execution-panel">
           <div class="panel-head">
-            <h2>Preview And Execute</h2>
+            <h2>Execution</h2>
           </div>
-          <div class="actions">
-            <button id="previewOrder" type="button" disabled>Preview</button>
-          </div>
-          <label class="confirm">
-            Confirmation
-            <input id="confirmation" placeholder="CONFIRM rh-bridge-..." autocomplete="off" />
-          </label>
-          <button id="executeOrder" type="button" class="danger" disabled>Execute</button>
-          <pre id="orderOutput" class="output">Create an approved proposal first.</pre>
+          <pre id="orderOutput" class="output">No automatic execution yet.</pre>
         </article>
 
         <article class="panel audit-panel">
@@ -151,6 +69,6 @@
       </section>
     </main>
 
-    <script src="/static/app.js?v=11"></script>
+    <script src="/static/app.js?v=12"></script>
   </body>
 </html>

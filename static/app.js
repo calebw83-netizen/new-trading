@@ -16,7 +16,7 @@ const autoExecuteButton = document.querySelector("#autoExecute");
 const confirmationInput = document.querySelector("#confirmation");
 const proposalForm = document.querySelector("#proposalForm");
 const strategyForm = document.querySelector("#strategyForm");
-const sideSelect = proposalForm.querySelector("[name='side']");
+const sideSelect = proposalForm?.querySelector("[name='side']");
 const baseSizeField = document.querySelector("#baseSizeField");
 
 function pretty(value) {
@@ -36,8 +36,8 @@ async function api(path, options = {}) {
 }
 
 function setOrderButtons(enabled) {
-  previewButton.disabled = !enabled;
-  executeButton.disabled = !enabled;
+  if (previewButton) previewButton.disabled = !enabled;
+  if (executeButton) executeButton.disabled = !enabled;
 }
 
 function compactPayload(form) {
@@ -49,6 +49,10 @@ function compactPayload(form) {
     if (payload[key] === "") delete payload[key];
   });
   return payload;
+}
+
+function defaultScanPayload() {
+  return {};
 }
 
 function renderStrategy(result) {
@@ -194,59 +198,62 @@ async function loadProposalFromStrategy(proposal) {
     ...currentProposal.checks,
   ].join("\n");
   setOrderButtons(currentProposal.status === "approved");
-  confirmationInput.placeholder = `CONFIRM ${currentProposal.client_order_id}`;
+  if (confirmationInput) {
+    confirmationInput.placeholder = `CONFIRM ${currentProposal.client_order_id}`;
+  }
   await loadAudit();
 }
 
 function updateSizeFields() {
-  baseSizeField.style.display = sideSelect.value === "SELL" ? "grid" : "none";
+  if (baseSizeField && sideSelect) {
+    baseSizeField.style.display = sideSelect.value === "SELL" ? "grid" : "none";
+  }
 }
 
-sideSelect.addEventListener("change", updateSizeFields);
+if (sideSelect) {
+  sideSelect.addEventListener("change", updateSizeFields);
+}
 updateSizeFields();
 
-strategyForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  strategyProposal = null;
-  loadStrategyProposalButton.disabled = true;
-  strategyOutput.className = "decision";
-  strategyOutput.textContent = "Analyzing chart, sentiment, and news-cycle risk...";
-  try {
-    const result = await api("/api/strategy/analyze", {
-      method: "POST",
-      body: JSON.stringify(compactPayload(strategyForm)),
-    });
-    renderStrategy(result);
-    strategyProposal = result.data.proposal;
-    loadStrategyProposalButton.disabled = !strategyProposal;
-    await loadAudit();
-  } catch (error) {
-    strategyOutput.className = "decision blocked";
-    strategyOutput.textContent = error.message;
-  }
-});
+if (strategyForm) {
+  strategyForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    strategyProposal = null;
+    if (loadStrategyProposalButton) loadStrategyProposalButton.disabled = true;
+    strategyOutput.className = "decision";
+    strategyOutput.textContent = "Analyzing chart, sentiment, and news-cycle risk...";
+    try {
+      const result = await api("/api/strategy/analyze", {
+        method: "POST",
+        body: JSON.stringify(compactPayload(strategyForm)),
+      });
+      renderStrategy(result);
+      strategyProposal = result.data.proposal;
+      if (loadStrategyProposalButton) loadStrategyProposalButton.disabled = !strategyProposal;
+      await loadAudit();
+    } catch (error) {
+      strategyOutput.className = "decision blocked";
+      strategyOutput.textContent = error.message;
+    }
+  });
+}
 
 autoScanButton.addEventListener("click", async () => {
   strategyProposal = null;
-  loadStrategyProposalButton.disabled = true;
+  if (loadStrategyProposalButton) loadStrategyProposalButton.disabled = true;
   setOrderButtons(false);
   strategyOutput.className = "decision";
   strategyOutput.textContent = "Scanning Robinhood crypto and stock charts, plus internet news...";
   proposalOutput.className = "decision";
   proposalOutput.textContent = "Waiting for automatic scan result.";
   try {
-    const formPayload = compactPayload(strategyForm);
     const result = await api("/api/strategy/scan", {
       method: "POST",
-      body: JSON.stringify({
-        bankroll_usd: formPayload.bankroll_usd || "10",
-        days_remaining: formPayload.days_remaining || 90,
-        base_inventory: formPayload.base_inventory,
-      }),
+      body: JSON.stringify(defaultScanPayload()),
     });
     renderScan(result);
     strategyProposal = result.data.best.proposal;
-    loadStrategyProposalButton.disabled = !strategyProposal;
+    if (loadStrategyProposalButton) loadStrategyProposalButton.disabled = !strategyProposal;
     if (strategyProposal) {
       await loadProposalFromStrategy(strategyProposal);
     } else {
@@ -262,7 +269,7 @@ autoScanButton.addEventListener("click", async () => {
 
 autoExecuteButton.addEventListener("click", async () => {
   strategyProposal = null;
-  loadStrategyProposalButton.disabled = true;
+  if (loadStrategyProposalButton) loadStrategyProposalButton.disabled = true;
   setOrderButtons(false);
   strategyOutput.className = "decision";
   strategyOutput.textContent = "Scanning for an 80+ setup before automatic execution...";
@@ -270,14 +277,9 @@ autoExecuteButton.addEventListener("click", async () => {
   proposalOutput.textContent = "Auto execution will only continue if scan, threshold, and guardrails pass.";
   orderOutput.textContent = "Waiting for auto-execute result...";
   try {
-    const formPayload = compactPayload(strategyForm);
     const result = await api("/api/strategy/auto-execute", {
       method: "POST",
-      body: JSON.stringify({
-        bankroll_usd: formPayload.bankroll_usd || "10",
-        days_remaining: formPayload.days_remaining || 90,
-        base_inventory: formPayload.base_inventory,
-      }),
+      body: JSON.stringify(defaultScanPayload()),
     });
     renderScan({ data: result.data.scan });
     currentProposal = result.data.proposal;
@@ -301,77 +303,87 @@ autoExecuteButton.addEventListener("click", async () => {
   }
 });
 
-loadStrategyProposalButton.addEventListener("click", async () => {
-  if (!strategyProposal) return;
-  try {
-    await loadProposalFromStrategy(strategyProposal);
-  } catch (error) {
-    proposalOutput.className = "decision blocked";
-    proposalOutput.textContent = error.message;
-  }
-});
+if (loadStrategyProposalButton) {
+  loadStrategyProposalButton.addEventListener("click", async () => {
+    if (!strategyProposal) return;
+    try {
+      await loadProposalFromStrategy(strategyProposal);
+    } catch (error) {
+      proposalOutput.className = "decision blocked";
+      proposalOutput.textContent = error.message;
+    }
+  });
+}
 
-proposalForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  setOrderButtons(false);
-  currentProposal = null;
-  const payload = compactPayload(event.currentTarget);
-  proposalOutput.className = "decision";
-  proposalOutput.textContent = "Checking guardrails...";
-  try {
-    const result = await api("/api/proposals", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-    currentProposal = result.data;
-    proposalOutput.className = `decision ${currentProposal.status}`;
-    proposalOutput.textContent = [
-      `${currentProposal.status.toUpperCase()} ${currentProposal.side} ${currentProposal.product_id}`,
-      `Client order ID: ${currentProposal.client_order_id}`,
-      "",
-      ...currentProposal.checks,
-    ].join("\n");
-    setOrderButtons(currentProposal.status === "approved");
-    confirmationInput.placeholder = `CONFIRM ${currentProposal.client_order_id}`;
-    await loadAudit();
-  } catch (error) {
-    proposalOutput.className = "decision blocked";
-    proposalOutput.textContent = error.message;
-  }
-});
+if (proposalForm) {
+  proposalForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    setOrderButtons(false);
+    currentProposal = null;
+    const payload = compactPayload(event.currentTarget);
+    proposalOutput.className = "decision";
+    proposalOutput.textContent = "Checking guardrails...";
+    try {
+      const result = await api("/api/proposals", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      currentProposal = result.data;
+      proposalOutput.className = `decision ${currentProposal.status}`;
+      proposalOutput.textContent = [
+        `${currentProposal.status.toUpperCase()} ${currentProposal.side} ${currentProposal.product_id}`,
+        `Client order ID: ${currentProposal.client_order_id}`,
+        "",
+        ...currentProposal.checks,
+      ].join("\n");
+      setOrderButtons(currentProposal.status === "approved");
+      if (confirmationInput) {
+        confirmationInput.placeholder = `CONFIRM ${currentProposal.client_order_id}`;
+      }
+      await loadAudit();
+    } catch (error) {
+      proposalOutput.className = "decision blocked";
+      proposalOutput.textContent = error.message;
+    }
+  });
+}
 
-previewButton.addEventListener("click", async () => {
-  if (!currentProposal) return;
-  orderOutput.textContent = "Previewing order...";
-  try {
-    const result = await api("/api/orders/preview", {
-      method: "POST",
-      body: JSON.stringify({ proposal: currentProposal }),
-    });
-    orderOutput.textContent = pretty(result.data);
-    await loadAudit();
-  } catch (error) {
-    orderOutput.textContent = error.message;
-  }
-});
+if (previewButton) {
+  previewButton.addEventListener("click", async () => {
+    if (!currentProposal) return;
+    orderOutput.textContent = "Previewing order...";
+    try {
+      const result = await api("/api/orders/preview", {
+        method: "POST",
+        body: JSON.stringify({ proposal: currentProposal }),
+      });
+      orderOutput.textContent = pretty(result.data);
+      await loadAudit();
+    } catch (error) {
+      orderOutput.textContent = error.message;
+    }
+  });
+}
 
-executeButton.addEventListener("click", async () => {
-  if (!currentProposal) return;
-  orderOutput.textContent = "Submitting order...";
-  try {
-    const result = await api("/api/orders/execute", {
-      method: "POST",
-      body: JSON.stringify({
-        proposal: currentProposal,
-        confirmation: confirmationInput.value,
-      }),
-    });
-    orderOutput.textContent = pretty(result.data);
-    await loadAudit();
-  } catch (error) {
-    orderOutput.textContent = error.message;
-  }
-});
+if (executeButton) {
+  executeButton.addEventListener("click", async () => {
+    if (!currentProposal) return;
+    orderOutput.textContent = "Submitting order...";
+    try {
+      const result = await api("/api/orders/execute", {
+        method: "POST",
+        body: JSON.stringify({
+          proposal: currentProposal,
+          confirmation: confirmationInput?.value || "",
+        }),
+      });
+      orderOutput.textContent = pretty(result.data);
+      await loadAudit();
+    } catch (error) {
+      orderOutput.textContent = error.message;
+    }
+  });
+}
 
 document.querySelector("#refreshAccounts").addEventListener("click", loadAccounts);
 document.querySelector("#refreshAudit").addEventListener("click", loadAudit);
