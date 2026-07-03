@@ -1,0 +1,12 @@
+.env
+.git
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.agents
+.codex
+ios
+tests
+tools
+trade_audit.sqlite3

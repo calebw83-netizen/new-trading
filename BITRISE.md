@@ -27,6 +27,24 @@ http://192.168.86.248:8000
 
 That only works while the iPhone is on the same network as your computer. For TestFlight testers outside your Wi-Fi, deploy the Python backend somewhere reachable over HTTPS and set `BACKEND_URL` in Bitrise.
 
+## LTE Backend
+
+To use the app on LTE, the iPhone app must load a public HTTPS backend. This repo includes a Docker deploy setup:
+
+- `Dockerfile` builds the Python backend.
+- `render.yaml` creates a hosted web service with paper trading and auto execution disabled by default.
+- Secret values belong in the hosting dashboard, not in GitHub.
+
+After the backend is deployed, copy its `https://...` URL into Bitrise:
+
+1. Open the Bitrise app.
+2. Go to **Secrets and env vars**.
+3. Add or update `BACKEND_URL`.
+4. Paste the hosted backend URL with no trailing slash.
+5. Re-run the `build` or `testflight` workflow.
+
+The same hosted URL can also be opened directly in Safari on the iPhone as a free PWA-style test.
+
 ## Workflows
 
 `build`

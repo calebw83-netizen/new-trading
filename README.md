@@ -43,6 +43,14 @@ This is not financial advice. The app can help evaluate and route a trade, but i
 
 5. Open http://127.0.0.1:8000.
 
+To test from another device on your home Wi-Fi, start the app on all network interfaces:
+
+```powershell
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+Then open `http://YOUR_PC_WIFI_IP:8000` on the iPhone. That address will not work on LTE because it is private to your home network.
+
 ## Robinhood API Key
 
 Use Robinhood Crypto API credentials with the least privilege you need. Put the API key and private key in `.env`; do not paste secrets into the browser.
@@ -69,6 +77,24 @@ Live order execution in this build is for Robinhood Crypto only. Stock scans and
 
 Use **Auto Execute 80+** only after explicitly opting in with `AUTO_EXECUTE_ENABLED=true`. Auto execution scans first, refuses anything below `AUTO_EXECUTE_MIN_SCORE` (minimum 80), runs the normal proposal guardrails, previews the order, and then executes. Live auto execution also requires `ROBINHOOD_MODE=live` and `ROBINHOOD_ENABLE_LIVE_TRADING=true`.
 
+## Using It On LTE
+
+LTE needs a public HTTPS backend. The local addresses `127.0.0.1` and `192.168...` only work on this computer or your home Wi-Fi.
+
+The repo includes `Dockerfile`, `.dockerignore`, and `render.yaml` so you can deploy the backend as a web service. One straightforward path is:
+
+1. Push this repo to GitHub.
+2. Create a Render web service from the GitHub repo.
+3. Let Render use `render.yaml`.
+4. Add any secret values in the host dashboard, not in the repo:
+   `ROBINHOOD_API_KEY`, `ROBINHOOD_API_SECRET`, and any limits you want to override.
+5. Keep `ROBINHOOD_MODE=paper`, `ROBINHOOD_ENABLE_LIVE_TRADING=false`, and `AUTO_EXECUTE_ENABLED=false` until you have verified the hosted app.
+6. Use the hosted `https://...` URL from Safari on iPhone, or set it as `BACKEND_URL` in Bitrise before building the TestFlight app.
+
+Free hosting can sleep between visits. For anything time-sensitive, use an always-on paid backend and keep order limits very small while testing.
+
+For a quick temporary LTE test without deploying, a tunnel such as Cloudflare Tunnel or ngrok can expose your local app over HTTPS, but your Windows computer must stay awake and running the server.
+
 ## References
 
 - Robinhood Crypto Trading API docs: https://docs.robinhood.com/crypto/trading/
@@ -80,3 +106,5 @@ Use **Auto Execute 80+** only after explicitly opting in with `AUTO_EXECUTE_ENAB
 The `ios/TradeRadar` folder contains a native SwiftUI/WKWebView wrapper for TestFlight. The root `bitrise.yml` can archive the app on Bitrise and, with Apple signing plus App Store Connect credentials configured, upload it for TestFlight.
 
 For TestFlight beyond your own Wi-Fi, set `BACKEND_URL` in Bitrise to a hosted HTTPS backend. A local URL such as `http://192.168.86.248:8000` only works while your iPhone is on the same network as this computer.
+
+Once the backend is hosted, put that hosted URL into Bitrise as `BACKEND_URL`, for example `https://trade-radar.onrender.com`. The iOS wrapper will load that public backend on Wi-Fi or LTE.

@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: trade-radar
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/status
+    autoDeploy: true
+    envVars:
+      - key: ROBINHOOD_MODE
+        value: paper
+      - key: ROBINHOOD_ENABLE_LIVE_TRADING
+        value: false
+      - key: AUTO_EXECUTE_ENABLED
+        value: false
+      - key: REQUIRE_CONFIRMATION
+        value: true
+      - key: AUDIT_DB_PATH
+        value: /tmp/trade_audit.sqlite3
+      - key: ALLOWED_PRODUCTS
+        value: BTC-USD,ETH-USD,AAPL,NVDA,TSLA,SPY,QQQ
+      - key: MAX_ORDER_QUOTE_USD
+        value: 25
+      - key: DAILY_QUOTE_LIMIT_USD
+        value: 100
+      - key: SCAN_ASSET_CLASSES
+        value: crypto,stocks
+      - key: SCAN_MAX_PRODUCTS
+        value: 12
+      - key: SCAN_STOCK_SYMBOLS
+        value: AAPL,NVDA,TSLA,MSFT,AMZN,META,GOOGL,AMD,SPY,QQQ,IWM,COIN,MSTR,HOOD
