@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#126c5a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Trade Radar" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <title>Robinhood Trading Bridge</title>
+    <link rel="manifest" href="/static/manifest.webmanifest?v=1" />
+    <link rel="apple-touch-icon" href="/static/icon.svg?v=1" />
+    <link rel="stylesheet" href="/static/styles.css?v=9" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="topbar">
+        <div>
+          <h1>Robinhood Trading Bridge</h1>
+          <p id="statusLine">Checking connection...</p>
+        </div>
+        <div class="status-pills" id="statusPills"></div>
+      </section>
+
+      <section class="grid">
+        <article class="panel strategy-panel">
+          <div class="panel-head">
+            <h2>Challenge Radar</h2>
+            <div class="panel-actions">
+              <button id="autoScan" type="button">Auto Scan</button>
+              <button id="autoExecute" type="button" class="danger">Auto Execute 80+</button>
+              <span class="challenge-target">$10 to $1000 / 90 days</span>
+            </div>
+          </div>
+          <form id="strategyForm" class="strategy-form">
+            <label>
+              Product
+              <input name="product_id" value="BTC-USD" autocomplete="off" />
+            </label>
+            <label>
+              Bankroll
+              <input name="bankroll_usd" value="10" inputmode="decimal" />
+            </label>
+            <label>
+              Days left
+              <input name="days_remaining" value="90" inputmode="numeric" />
+            </label>
+            <label>
+              Sentiment
+              <input name="sentiment_score" type="range" min="-5" max="5" value="0" />
+            </label>
+            <label>
+              News bias
+              <select name="news_bias">
+                <option value="neutral">Neutral</option>
+                <option value="bullish">Bullish</option>
+                <option value="bearish">Bearish</option>
+              </select>
+            </label>
+            <label>
+              Event risk
+              <select name="event_risk">
+                <option value="elevated">Elevated</option>
+                <option value="low">Low</option>
+                <option value="extreme">Extreme</option>
+              </select>
+            </label>
+            <label class="toggle-label">
+              <input name="auto_fetch_news" type="checkbox" value="true" checked />
+              Auto news
+            </label>
+            <label>
+              Base held
+              <input name="base_inventory" value="" inputmode="decimal" placeholder="Optional" />
+            </label>
+            <label class="wide">
+              News cycle notes
+              <textarea name="headlines" rows="3" placeholder="Paste headlines, themes, catalysts, risk events"></textarea>
+            </label>
+            <button type="submit">Analyze</button>
+          </form>
+          <div class="strategy-result">
+            <div id="strategyOutput" class="decision empty">No analysis yet.</div>
+            <button id="loadStrategyProposal" type="button" disabled>Load Proposal</button>
+          </div>
+        </article>
+
+        <article class="panel account-panel">
+          <div class="panel-head">
+            <h2>Account</h2>
+            <button id="refreshAccounts" type="button">Refresh</button>
+          </div>
+          <pre id="accountsOutput" class="output">No account data loaded yet.</pre>
+        </article>
+
+        <article class="panel proposal-panel">
+          <div class="panel-head">
+            <h2>Trade Check</h2>
+          </div>
+          <form id="proposalForm" class="form">
+            <label>
+              Product
+              <input name="product_id" value="BTC-USD" autocomplete="off" />
+            </label>
+            <label>
+              Side
+              <select name="side">
+                <option value="BUY">Buy</option>
+                <option value="SELL">Sell</option>
+              </select>
+            </label>
+            <label>
+              Quote notional in USD
+              <input name="quote_size" value="10" inputmode="decimal" />
+            </label>
+            <label id="baseSizeField">
+              Base asset size
+              <input name="base_size" value="" inputmode="decimal" placeholder="Required for sells" />
+            </label>
+            <label class="wide">
+              Rationale
+              <textarea name="rationale" rows="4" placeholder="Why this trade should be considered"></textarea>
+            </label>
+            <button type="submit">Check Trade</button>
+          </form>
+          <div id="proposalOutput" class="decision empty">No proposal checked yet.</div>
+        </article>
+
+        <article class="panel execution-panel">
+          <div class="panel-head">
+            <h2>Preview And Execute</h2>
+          </div>
+          <div class="actions">
+            <button id="previewOrder" type="button" disabled>Preview</button>
+          </div>
+          <label class="confirm">
+            Confirmation
+            <input id="confirmation" placeholder="CONFIRM rh-bridge-..." autocomplete="off" />
+          </label>
+          <button id="executeOrder" type="button" class="danger" disabled>Execute</button>
+          <pre id="orderOutput" class="output">Create an approved proposal first.</pre>
+        </article>
+
+        <article class="panel audit-panel">
+          <div class="panel-head">
+            <h2>Audit Trail</h2>
+            <button id="refreshAudit" type="button">Refresh</button>
+          </div>
+          <div id="auditOutput" class="audit-list">No audit events loaded yet.</div>
+        </article>
+      </section>
+    </main>
+
+    <script src="/static/app.js?v=9"></script>
+  </body>
+</html>

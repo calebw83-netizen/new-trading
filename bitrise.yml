@@ -1,0 +1,67 @@
+format_version: "13"
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+project_type: ios
+trigger_map:
+  - push_branch: main
+    workflow: build
+  - pull_request_source_branch: "*"
+    workflow: build
+
+app:
+  envs:
+    - BITRISE_PROJECT_PATH: ios/TradeRadar/TradeRadar.xcodeproj
+    - BITRISE_SCHEME: TradeRadar
+    - BITRISE_DISTRIBUTION_METHOD: app-store
+    - BACKEND_URL: https://replace-with-your-hosted-backend.example.com
+
+workflows:
+  build:
+    description: Build the iOS wrapper and upload artifacts to Bitrise.
+    steps:
+      - git-clone@8: {}
+      - script@1:
+          title: Set backend URL
+          inputs:
+            - content: |-
+                set -euo pipefail
+                if [ -n "${BACKEND_URL:-}" ]; then
+                  /usr/libexec/PlistBuddy -c "Set :BackendURL ${BACKEND_URL}" "$BITRISE_SOURCE_DIR/ios/TradeRadar/TradeRadar/Info.plist"
+                fi
+      - xcode-archive@5:
+          inputs:
+            - project_path: "$BITRISE_PROJECT_PATH"
+            - scheme: "$BITRISE_SCHEME"
+            - distribution_method: "$BITRISE_DISTRIBUTION_METHOD"
+            - automatic_code_signing: "off"
+      - deploy-to-bitrise-io@2: {}
+
+  testflight:
+    description: Archive, sign, and upload the iOS wrapper to App Store Connect/TestFlight.
+    steps:
+      - git-clone@8: {}
+      - script@1:
+          title: Set backend URL
+          inputs:
+            - content: |-
+                set -euo pipefail
+                if [ -n "${BACKEND_URL:-}" ]; then
+                  /usr/libexec/PlistBuddy -c "Set :BackendURL ${BACKEND_URL}" "$BITRISE_SOURCE_DIR/ios/TradeRadar/TradeRadar/Info.plist"
+                fi
+      - manage-ios-code-signing@2:
+          inputs:
+            - distribution_method: "$BITRISE_DISTRIBUTION_METHOD"
+            - project_path: "$BITRISE_PROJECT_PATH"
+            - scheme: "$BITRISE_SCHEME"
+      - xcode-archive@5:
+          inputs:
+            - project_path: "$BITRISE_PROJECT_PATH"
+            - scheme: "$BITRISE_SCHEME"
+            - distribution_method: "$BITRISE_DISTRIBUTION_METHOD"
+            - automatic_code_signing: "api-key"
+      - deploy-to-itunesconnect-deliver@2:
+          inputs:
+            - bundle_id: "com.caleb.traderadar"
+            - ipa_path: "$BITRISE_IPA_PATH"
+            - platform: "ios"
+            - submit_for_review: "no"
+      - deploy-to-bitrise-io@2: {}

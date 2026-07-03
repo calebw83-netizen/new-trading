@@ -1,0 +1,17 @@
+{
+  "name": "Robinhood Trading Bridge",
+  "short_name": "Trade Radar",
+  "description": "Local trading radar for Robinhood paper/live workflows.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f6f2",
+  "theme_color": "#126c5a",
+  "icons": [
+    {
+      "src": "/static/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
